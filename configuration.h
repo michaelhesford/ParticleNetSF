@@ -33,6 +33,9 @@ namespace conf {
   std::vector<TString> syst;
   std::vector<TString> processes_in;
 
+  double zmin;
+  double zmax;
+
   TString path_2016;
   TString path_2017;
   TString path_2018;
@@ -56,27 +59,36 @@ namespace conf {
       
       brX = jet_prefix+"sdmass"; 
       brY = jet_prefix+"pt";
-      //category = "top"; //Top-Tagger
-      category = "w"; //W-Tagger
+      //category = "Wqq"; //W-Tagger
+      category = "Hbb"; //H-Tagger
  
      // for make2DTemplates
       processes.push_back("ttbar-powheg"); process_names.push_back("tt"); 
       processes.push_back("singletop");    process_names.push_back("st");
-      processes.push_back("ttv");          process_names.push_back("ttv");
-      processes.push_back("w");            process_names.push_back("wll");
-      processes.push_back("diboson");      process_names.push_back("vv");
-      //processes.push_back("qcd-mg");       process_names.push_back("qcd");
+      processes.push_back("w");            process_names.push_back("wj");
+      processes.push_back("z");            process_names.push_back("zj");
+      processes.push_back("drell-yan");    process_names.push_back("dy");
+      processes.push_back("qcd-mg");       process_names.push_back("qcd");
+
+      //processes.push_back("ttv");          process_names.push_back("ttv");
+      //processes.push_back("diboson");      process_names.push_back("vv");
 
       // keep this format - pretify later - need to keep this order
       processes_in.push_back("tt_p3"); processes_in.push_back("st_p3"); processes_in.push_back("ttv_p3");
       processes_in.push_back("tt_p2"); processes_in.push_back("st_p2"); processes_in.push_back("ttv_p2"); 
       processes_in.push_back("tt_p1"); processes_in.push_back("st_p1"); processes_in.push_back("ttv_p1");
-      processes_in.push_back("wll");   processes_in.push_back("vv");    //processes_in.push_back("qcd"); 
+      processes_in.push_back("wj"); processes_in.push_back("zj"); processes_in.push_back("dy"); processes_in.push_back("db"); //processes_in.push_back("ttv"); processes_in.push_back("tth"); processes_in.push_back("db");
+      processes_in.push_back("qcd"); 
 
       // list of systematic uncertainties
-      syst.push_back("_"); syst.push_back("pu"); syst.push_back("jes"); syst.push_back("jer"); syst.push_back("met"); 
-      syst.push_back("jms"); syst.push_back("jmr");
-      syst.push_back("lhescalemuf"); syst.push_back("lhescalemur"); //syst.push_back("lhepdf");
+      syst.push_back("_"); syst.push_back("Pileup"); syst.push_back("TptReweight");
+      syst.push_back("Pdfweight"); syst.push_back("JES"); syst.push_back("JER"); syst.push_back("JMS"); syst.push_back("JMR");
+      syst.push_back("ISRunc_qcd"); syst.push_back("FSRunc_qcd"); syst.push_back("ISRunc_ewk"); syst.push_back("FSRunc_ewk");
+      syst.push_back("ElectronIDWeight"); syst.push_back("ElectronRecoWeight"); syst.push_back("QCDscale_uncert_qcd"); syst.push_back("QCDscale_uncert_ewk");
+      syst.push_back("MuonIDWeight_uncert_stat"); syst.push_back("MuonIDWeight_uncert_syst");
+      syst.push_back("MuonRecoWeight_uncert_stat"); syst.push_back("MuonRecoWeight_uncert_syst"); 
+      syst.push_back("UE"); syst.push_back("MuoTrigSF_lowPt"); syst.push_back("MuoTrigSF_highPt");
+      //syst.push_back("L1PreFiringWeight"); //remove for 2018
     }
 
 
@@ -85,43 +97,45 @@ namespace conf {
     //score_def = jet_prefix+"ParticleNet_TvsQCD"; 
     //score_def = jet_prefix+"ParticleNet_WvsQCD"; //W-Nominal
     score_def = "(fj_1_ParticleNetMD_Xcc+fj_1_ParticleNetMD_Xqq)/(fj_1_ParticleNetMD_Xcc+fj_1_ParticleNetMD_Xqq+fj_1_ParticleNetMD_QCD)"; //W-MD
-    binsX = 34; minX = 50;  maxX = 220.;
+    binsX = 20; minX = 50;  maxX = 250.;
     //binsY = 40; minY = 200; maxY = 1200.; //Top-Tagger
-    binsY = 40; minY = 200; maxY = 800.; //W-Tagger
+    binsY = 24; minY = 300; maxY = 1500.; //W,H-Taggers
        
-     // Top
+    // Hbb
+    //zmin = 0.2; zmax = 1;
     //name.push_back("pt300to400"); ptmin.push_back(300.); ptmax.push_back(400.);
-    //name.push_back("pt400to480"); ptmin.push_back(400.); ptmax.push_back(480.);  
-    //name.push_back("pt480to600"); ptmin.push_back(480.); ptmax.push_back(600.);   
-    //name.push_back("pt600to1200"); ptmin.push_back(600.); ptmax.push_back(1200.);
-    //name.push_back("200to1200"); ptmin.push_back(200.); ptmax.push_back(1200.);
-     
+    //name.push_back("pt400to600"); ptmin.push_back(400.); ptmax.push_back(600.);
+    //name.push_back("pt600to1500"); ptmin.push_back(600.); ptmax.push_back(1500.);    
+ 
     //W
-    name.push_back("pt200to300"); ptmin.push_back(200.); ptmax.push_back(300.);
-    //name.push_back("pt300to400"); ptmin.push_back(300.); ptmax.push_back(400.);  
-    //name.push_back("pt400to800"); ptmin.push_back(400.); ptmax.push_back(800.);   
+    zmin = 0; zmax = 1;
+    name.push_back("pt300to400"); ptmin.push_back(300.); ptmax.push_back(400.);
+    name.push_back("pt400to500"); ptmin.push_back(400.); ptmax.push_back(500.);
+    name.push_back("pt500to1500"); ptmin.push_back(500.); ptmax.push_back(1500.);  
     
+    //name.push_back("pt300to1500"); ptmin.push_back(300.); ptmax.push_back(1500.);
+ 
     // =================== end of area to modify - tune ===================== //
 
     qcd.name        = "qcd";
-    qcd.legend_name = "QCD";
-    qcd.color       = 92;
-    
-    tp2.name        = "tp2";
-    tp2.legend_name = "W-merged";
-    tp2.color       = 590;
-    
+    qcd.legend_name = "QCD Multijet";
+    qcd.color       = kOrange-3;
+   
     tp3.name        = "tp3";
     tp3.legend_name = "Top-merged";
-    tp3.color       = 4;
+    tp3.color       = kAzure+5;
+ 
+    tp2.name        = "tp2";
+    tp2.legend_name = "bq-merged";
+    tp2.color       = 590;
     
     tp1.name        = "tp1";
     tp1.legend_name = "Non-merged";
     tp1.color       = 595;
     
     other.name        = "other";
-    other.legend_name = "Other";
-    other.color       = 6;
+    other.legend_name = "Other SM";
+    other.color       = kGreen-2;
  
   }   
 

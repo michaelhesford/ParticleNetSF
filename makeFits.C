@@ -12,15 +12,20 @@ void makeFits(std::string era, std::string category, std::string wpmin, std::str
 
   std::vector<TString> name  = conf::name;
   
-  if (sample=="tt1L" || sample=="ttbar1L" || (sample=="ttbar1l") || (sample=="tt1l")) {
-    for (int i0=0; i0<name.size(); ++i0) { makeOneFitTop(era,category,wpmin,wpmax,(std::string)name[i0],(std::string)conf::algo); } }
+  if(sample=="tt1l")
+    {
+      for (int i0=0; i0<name.size(); ++i0) 
+	{ 
+	  makeOneFitTop(era,category,wpmin,wpmax,(std::string)name[i0],(std::string)conf::algo);
+	} 
+    }
 }
 
 
 void makeOneFitTop(std::string era, std::string category, std::string wpmin, std::string wpmax, std::string name, std::string name1) {
-  
+  /*    
   //std::string txt2workspace     = "text2workspace.py -m 125 -P HiggsAnalysis.CombinedLimit.TagAndProbeExtended:tagAndProbe "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".txt --PO categories=tp3,tp2,tp1,other"; //For top-tag SFs
-  std::string txt2workspace     = "text2workspace.py -m 125 -P HiggsAnalysis.CombinedLimit.TagAndProbeExtended:tagAndProbe "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".txt --PO categories=tp2,tp3,tp1,other"; //For W-tag SFs
+  std::string txt2workspace     = "text2workspace.py -m 125 -P HiggsAnalysis.CombinedLimit.TagAndProbeExtended:tagAndProbe "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".txt --PO categories=tp3,tp2,tp1"; //For W-tag SFs
   
   std::string multidimfit       = "combine -M MultiDimFit -m 125 "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root  --algo=singles --robustFit=1 --cminDefaultMinimizerTolerance 5.";
   
@@ -35,7 +40,7 @@ void makeOneFitTop(std::string era, std::string category, std::string wpmin, std
   const char *command_fitdiagnostics    = fitdiagnostics.c_str();
   const char *command_mvmultidimfitfile = mvmultidimfitfile.c_str(); 
   const char *command_mvfitdiagnostics  = mvfitdiagnostics.c_str();
-
+  
   system(command_txt2workspace);
   system(command_multidimfit);
   system(command_fitdiagnostics);
@@ -43,16 +48,22 @@ void makeOneFitTop(std::string era, std::string category, std::string wpmin, std
   system(command_mvfitdiagnostics);
   
   // calculate impacts
+  std::string impacts_0 = "if [ ! -d 'particlenetmd_sf/plots_postfit/impacts' ]; then mkdir -p 'particlenetmd_sf/plots_postfit/impacts'; else echo 'Directory particlenetmd_sf/plots_postfit/impacts exists.'; fi"; 
   std::string impacts_1 = "combineTool.py -M Impacts -d "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root -m 125 --doInitialFit --robustFit 1 --exclude 'rgx{prop.*}'";
   std::string impacts_2 = "combineTool.py -M Impacts -d "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root -m 125 --robustFit 1 --doFits --parallel 60 --exclude 'rgx{prop.*}'";
   std::string impacts_3 = "combineTool.py -M Impacts -d "+name1+"_sf/fitdir/datacard_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root -m 125 -o impacts.json --exclude 'rgx{prop.*}'";
-  std::string impacts_4 = "plotImpacts.py -i impacts.json -o impacts";
-  std::string impacts_5 = "mv impacts.pdf "+name1+"_sf/fitdir/impacts_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".pdf";
-  std::string impacts_6 = "mv impacts.json "+name1+"_sf/fitdir/impacts_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".json";
-  std::string impacts_7 = "mv combine_logger.out "+name1+"_sf/fitdir/combine_logger_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".out";
-  std::string impacts_8 = "python ../CMSSW_10_2_13/src/HiggsAnalysis/CombinedLimit/data/tutorials/longexercise/diffNuisances.py "+name1+"_sf/fitdir/fitdiagnostics_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root -A -g plots.root";
-  std::string impacts_9 = "mv plots.root "+name1+"_sf/fitdir/impact_plots_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root";
+  std::string impacts_4 = "plotImpacts.py -i impacts.json -o impacts --POI SF_tp1";
+  std::string impacts_5 = "mv impacts.pdf "+name1+"_sf/plots_postfit/impacts/impacts_SFtp1_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".pdf";
+  std::string impacts_6 = "plotImpacts.py -i impacts.json -o impacts --POI SF_tp2";
+  std::string impacts_7 = "mv impacts.pdf "+name1+"_sf/plots_postfit/impacts/impacts_SFtp2_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".pdf";
+  std::string impacts_8 = "plotImpacts.py -i impacts.json -o impacts --POI SF_tp3";
+  std::string impacts_9 = "mv impacts.pdf "+name1+"_sf/plots_postfit/impacts/impacts_SFtp3_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".pdf";
+  std::string impacts_10 = "mv impacts.json "+name1+"_sf/plots_postfit/impacts/impacts_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".json";
+  std::string impacts_11 = "mv combine_logger.out "+name1+"_sf/fitdir/combine_logger_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".out";
+  std::string impacts_12 = "python ../CMSSW_14_1_1/src/HiggsAnalysis/CombinedLimit/data/tutorials/longexercise/diffNuisances.py "+name1+"_sf/fitdir/fitdiagnostics_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root -A -g plots.root";
+  std::string impacts_13 = "mv plots.root "+name1+"_sf/fitdir/impact_plots_"+name1+"_tt1l_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_"+name+".root";
  
+  const char *command_impacts0 = impacts_0.c_str();
   const char *command_impacts1 = impacts_1.c_str();
   const char *command_impacts2 = impacts_2.c_str();
   const char *command_impacts3 = impacts_3.c_str();
@@ -62,7 +73,12 @@ void makeOneFitTop(std::string era, std::string category, std::string wpmin, std
   const char *command_impacts7 = impacts_7.c_str();
   const char *command_impacts8 = impacts_8.c_str();
   const char *command_impacts9 = impacts_9.c_str();
-
+  const char *command_impacts10 = impacts_10.c_str();
+  const char *command_impacts11 = impacts_11.c_str();
+  const char *command_impacts12 = impacts_12.c_str();
+  const char *command_impacts13 = impacts_13.c_str();
+  
+  system(command_impacts0);
   system(command_impacts1);
   system(command_impacts2);
   system(command_impacts3);
@@ -72,8 +88,12 @@ void makeOneFitTop(std::string era, std::string category, std::string wpmin, std
   system(command_impacts7);
   system(command_impacts8);
   system(command_impacts9);
+  system(command_impacts10);
+  system(command_impacts11);
+  system(command_impacts12);
+  system(command_impacts13);
   system("rm higgsCombine*.root");
-  
+  */
   // post fit plots
   system("root -l -q \'HeavyFlavourZCandleStudies.C(\"'"+(TString)era+"'\",\"tt1l\",\"'"+(TString)category+"'\",\"'"+(TString)wpmin+"'\",\"'"+(TString)wpmax+"'\",true,\"pass\",\"jmcor\")\'");
   system("root -l -q \'HeavyFlavourZCandleStudies.C(\"'"+(TString)era+"'\",\"tt1l\",\"'"+(TString)category+"'\",\"'"+(TString)wpmin+"'\",\"'"+(TString)wpmax+"'\",true,\"fail\",\"jmcor\")\'");

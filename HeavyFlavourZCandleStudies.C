@@ -30,10 +30,10 @@ TH1F *rescaleXaxis(TH1F *inputhisto, float xmin, float xmax);
 void rescaleXaxis(TGraphAsymmErrors *inputhisto, double xmin, double scale);
 TH1F *getDataMCratio(TGraphAsymmErrors *indata, TH1F *inMC);
 void makeDataMCPlotFromCombine(TString path2file, TString era, TString category, TString category_extra, TString wpmin, TString wpmax, TString name, TString passOrFail, 
-			       float xmin, float xmax, int nbins,TString xaxisname, bool log, TString sample);
-TH1D *h1DHistoFrom2DTemplates(TString path2file,TString h2dname,TString name,double ymin, double ymax,int color,bool isdata);
-TCanvas *makeCanvasWithRatio(TH1D* hdata, std::vector<TH1D*> h1d, TString dir, TString name, TString xname, TString yname, TLegend *leg);
-void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TString name, TString sample, double ymin, double ymax);
+			       float xmin, float xmax, double ptlow, double pthigh, int nbins, TString xaxisname, bool log, TString sample);
+TH1D *h1DHistoFrom2DTemplates(TString path2file,TString h2dname,TString name,double ymin, double ymax, double zmin, double zmax, int color,bool isdata);
+TCanvas *makeCanvasWithRatio(TString path2file, TH1D* hdata, std::vector<TH1D*> h1d, TString dir, TString name, TString xname, TString yname, TLegend *leg);
+void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TString name, TString sample, double ymin, double ymax, double zmin, double zmax);
 TH1D *h1dShift(TString name, TH1D* inputh1d, int numOfBins, bool up);
 
 TH1D *hrwgt = nullptr;
@@ -50,6 +50,8 @@ void HeavyFlavourZCandleStudies(TString era, TString sample, TString category, T
   std::vector<TString> name  = conf::name;
   std::vector<double>  ptmin = conf::ptmin;
   std::vector<double>  ptmax = conf::ptmax;    
+  double tmin = conf::zmin;
+  double tmax = conf::zmax;
   
   if (postfit) 
     {
@@ -58,10 +60,11 @@ void HeavyFlavourZCandleStudies(TString era, TString sample, TString category, T
 	  std::cout << "postfit: " << sample << " " << category << " " << wpmin << "to" << wpmax << " " << passOrFail << "\n";
 	  for (int i0=0; i0<name.size(); ++i0) 
 	    { 
-	      makeDataMCPlotFromCombine(conf::algo,era,category,category_extra,wpmin,wpmax,name[i0],passOrFail,conf::minX,conf::maxX,conf::binsX,"m_{SD} [GeV]",false,sample); 
+	    makeDataMCPlotFromCombine(conf::algo,era,category,category_extra,wpmin,wpmax,name[i0],passOrFail,conf::minX,conf::maxX,ptmin[i0],ptmax[i0],conf::binsX,"m_{SD} [GeV]",false,sample);  
 	    }
 	}
     }
+  
   if (!postfit) 
     {
       if ( (sample == "tt1L") || (sample=="ttbar1L") || (sample=="ttbar1l") || (sample == "tt1l") ) 
@@ -70,14 +73,14 @@ void HeavyFlavourZCandleStudies(TString era, TString sample, TString category, T
 	  for (int i0=0; i0<name.size(); ++i0) 
 	    { 
 	      std::cout << sample<< "\n";
-	      makeDataMCFrom2DTemplatesTop("templates2D/"+conf::algo+"_"+sample+"_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_200to1200_templates.root",                       
-				     conf::algo+"_"+sample+"_"+category+"_"+wpmin+"to"+wpmax+"_"+era,name[i0],category,ptmin[i0],ptmax[i0]);
+	      makeDataMCFrom2DTemplatesTop("templates2D/"+conf::algo+"_"+sample+"_"+category+"_"+wpmin+"to"+wpmax+"_"+era+"_300to1500_templates.root",                       
+				     conf::algo+"_"+sample+"_"+category+"_"+wpmin+"to"+wpmax+"_"+era,name[i0],category,ptmin[i0],ptmax[i0],tmin,tmax);
 	    } 
 	}
     }
 }
 
-void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TString name, TString sample, double ymin, double ymax) {
+void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TString name, TString sample, double ymin, double ymax, double zmin, double zmax) {
   TH1::SetDefaultSumw2(kTRUE);
   setTDRStyle();
   gROOT->SetBatch(true);
@@ -96,19 +99,22 @@ void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TStrin
   nameoutfile = nameoutfile+"_"+name;
 
   // Data templates 
-  TH1D *h_data_p  = h1DHistoFrom2DTemplates(path2file,"data_obs_pass",name,ymin,ymax,1,true);
-  TH1D *h_data_f  = h1DHistoFrom2DTemplates(path2file,"data_obs_fail",name,ymin,ymax,1,true);
+  TH1D *h_data_p  = h1DHistoFrom2DTemplates(path2file,"data_obs_pass",name,ymin,ymax,zmin,zmax,1,true);
+  TH1D *h_data_f  = h1DHistoFrom2DTemplates(path2file,"data_obs_fail",name,ymin,ymax,zmin,zmax,1,true);
 
   // MC templates
   std::vector<TString> syst = conf::syst;
   std::vector<TString> processes_in = conf::processes_in;
 
   std::vector<TString> processes_out;
-  if (sample == "top") { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); }
-  if (sample == "w")   { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); }
-  std::vector<int>     colors    = {conf::tp3.color,conf::tp2.color,conf::tp1.color,conf::other.color};
-  std::vector<TString> legends   = {conf::tp3.legend_name,conf::tp2.legend_name,conf::tp1.legend_name,conf::other.legend_name};
-
+  //if (sample == "Hbb") { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); } //processes_out.push_back("qcd"); }
+  //if (sample == "Wqq")   { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); } //processes_out.push_back("qcd");}
+  //std::vector<int>     colors    = {conf::tp3.color,conf::tp2.color,conf::tp1.color,conf::other.color}; //,conf::qcd.color};
+  //std::vector<TString> legends   = {conf::tp3.legend_name,conf::tp2.legend_name,conf::tp1.legend_name,conf::other.legend_name}; //,conf::qcd.legend_name};
+  if (sample == "Hbb") { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); processes_out.push_back("qcd"); }
+  if (sample == "Wqq")   { processes_out.push_back("tp3"); processes_out.push_back("tp2"); processes_out.push_back("tp1"); processes_out.push_back("other"); processes_out.push_back("qcd");}
+  std::vector<int>     colors    = {conf::tp3.color,conf::tp2.color,conf::tp1.color,conf::other.color,conf::qcd.color};
+  std::vector<TString> legends   = {conf::tp3.legend_name,conf::tp2.legend_name,conf::tp1.legend_name,conf::other.legend_name,conf::qcd.legend_name};
 
   std::vector<TH1D*> hist_out_p; hist_out_p.clear();
   std::vector<TH1D*> hist_out_f; hist_out_f.clear();
@@ -128,17 +134,27 @@ void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TStrin
           /////////////////////////////////////////////////////////////////////////
           
           TH1D *h_;
-          if (ip>8){
-               h_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+catstr_,name,ymin,ymax,1,false);
-               TH1D *h__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+catstr_,name,ymin,ymax,1,false);
-               h_->Add(h__);
+          if (ip==9){ 
+               h_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // W+Jets
+               TH1D *h__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // Z+Jets 
+	       TH1D *h___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // DY+Jets
+	       TH1D *h____ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // DY+Jets
+               h_->Add(h__); h_->Add(h___); h_->Add(h____);
+	       ip = ip+1;
           }
-          else if(ip<=8){       
-	       h_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+catstr_,name,ymin,ymax,1,false);
-	       TH1D *h__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+catstr_,name,ymin,ymax,1,false);
-	       TH1D *h___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+catstr_,name,ymin,ymax,1,false);
-	       h_->Add(h__); h_->Add(h___);
+          
+          else if (ip>9){ //QCD
+              h_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false);
           }
+          
+          else if(ip<9){       
+	       h_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // ttbar
+	       TH1D *h__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+catstr_,name,ymin,ymax,zmin,zmax,1,false); // ST
+	       h_->Add(h__);
+          }
+	  else {
+              std::cout << "hi";
+	  }
           
           /////////////////////////////////////////////////////////////////////////
 	  h_->SetName(processes_out[count]); h_->SetLineColor(colors[count]); h_->SetFillColor(colors[count]);
@@ -146,46 +162,126 @@ void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TStrin
 	  if (category[ic] == "pass") { hist_out_p.push_back(h_); hist_out_nom_p.push_back(h_); }
 	  else                        { hist_out_f.push_back(h_); hist_out_nom_f.push_back(h_); } 
 	}
-      
+        
 	else {
 
 	  TString nameSyst = syst[is];
-	  if ( (syst[is].Contains("jms")) || (syst[is].Contains("jmr")) ) {
-	    nameSyst = processes_out[count]+syst[is];
-	    if ( (processes_in[ip].Contains("wqq")) || (processes_in[ip].Contains("zqq")) || (processes_in[ip].Contains("tt_p2")) ) { nameSyst = "vqq"+syst[is]; }
-	    if ( (processes_in[ip].Contains("wll")) || (processes_in[ip].Contains("qcd")) ) { nameSyst = "other"+syst[is]; } 
-	  }
-          if (ip>8){
-          TH1D *h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,1,false);
-          TH1D *h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,1,false);
-          h_up_->Add(h_up__);
-          h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
-          if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }
+           
+	  if ( (syst[is].Contains("JMS")) || (syst[is].Contains("JMR")) ) {
+            nameSyst = processes_out[count]+syst[is];
+	    if (processes_out[count] == "qcd") {
+	      nameSyst = "other"+syst[is];
+	    }
+	  } 
+          
+          // Note: we need to deal with TopPtReweight, QCDscale, and ISR/FSR specially
+         
+          if (ip==9){
+            // EWK "other" processes
+            if (syst[is].Contains("TptReweight") || syst[is].Contains("qcd")){
+              ip = ip+3;
+              ++count;
+              continue;
+	    }	
 
-          TH1D *h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,1,false);
-          TH1D *h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,1,false);
-          h_down_->Add(h_down__); 
+            TH1D *h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            TH1D *h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+    	    TH1D *h_up___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    TH1D *h_up____;
+	    if (syst[is] == "Pdfweight" or syst[is].Contains("QCDscale")) { // Diboson doesn't have these systematics
+	      h_up____ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+3]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false); // grab nominal histogram
+            }
+	    else { 
+    	      h_up____ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+3]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    }
+            h_up_->Add(h_up__); h_up_->Add(h_up___); h_up_->Add(h_up____); 
+            h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
+            if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }
+
+            TH1D *h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            TH1D *h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    TH1D *h_down___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    TH1D *h_down____;
+	    if (syst[is] == "Pdfweight" or syst[is].Contains("QCDscale")) {
+              h_down____ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+3]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    }
+	    else {
+    	      h_down____ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+3]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	    }
+            h_down_->Add(h_down__);  h_down_->Add(h_down___); h_down_->Add(h_down____);
+            h_down_->SetName(processes_out[count]+"_"+nameSyst+"Down"); h_down_->SetLineColor(colors[count]); h_down_->SetFillColor(colors[count]);
+            if (category[ic] == "pass") { hist_out_p.push_back(h_down_); } else { hist_out_f.push_back(h_down_); }
+
+	    ip = ip+1;
+          }
+          
+          else if (ip>9){ 
+            // QCD
+            if (syst[is].Contains("TptReweight") || syst[is].Contains("ewk")){
+              ip = ip+2;
+              ++count;
+              continue;
+            } 
+
+            TH1D *h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
+            if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }
+
+            TH1D *h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            h_down_->SetName(processes_out[count]+"_"+nameSyst+"Down"); h_down_->SetLineColor(colors[count]); h_down_->SetFillColor(colors[count]);
+            if (category[ic] == "pass") { hist_out_p.push_back(h_down_); } else { hist_out_f.push_back(h_down_); } 
+          }
+          
+	  else if (ip<9){
+            TH1D* h_up_;
+	    TH1D* h_down_;
+	    TH1D* h_up__;
+	    TH1D* h_down__;
+	     
+            if (syst[is].Contains("TptReweight") || syst[is].Contains("qcd")){
+              // Single-top doesn't have top-pt reweight applied - just grab nominal histogram
+              h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	      h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            
+              h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+              h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            }
+
+            else if (syst[is].Contains("ewk")){
+              h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	      h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+              
+              h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+              h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"__"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            }    
+         
+            else{
+              h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+	      h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+              
+              h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+              h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
+            } 
+
+	    h_up_->Add(h_up__);
+	    h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
+	    if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }
+
+	    h_down_->Add(h_down__); 
+	    h_down_->SetName(processes_out[count]+"_"+nameSyst+"Down"); h_down_->SetLineColor(colors[count]); h_down_->SetFillColor(colors[count]);
+	    if (category[ic] == "pass") { hist_out_p.push_back(h_down_); } else { hist_out_f.push_back(h_down_); }
+	  }
+           
+          /*
+          TH1D *h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);        
+          h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
+          if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }       
+ 
+          TH1D *h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,zmin,zmax,1,false);
           h_down_->SetName(processes_out[count]+"_"+nameSyst+"Down"); h_down_->SetLineColor(colors[count]); h_down_->SetFillColor(colors[count]);
           if (category[ic] == "pass") { hist_out_p.push_back(h_down_); } else { hist_out_f.push_back(h_down_); }
+          */
 
-          }
-	  else if (ip<=8){
-	  TH1D *h_up_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,1,false);
-	  TH1D *h_up__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,1,false);
-	  h_up_->Add(h_up__);
-	  TH1D *h_up___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+"Up_"+catstr_,name,ymin,ymax,1,false);
-	  h_up_->Add(h_up___); 
-	  h_up_->SetName(processes_out[count]+"_"+nameSyst+"Up"); h_up_->SetLineColor(colors[count]); h_up_->SetFillColor(colors[count]);
-	  if (category[ic] == "pass") { hist_out_p.push_back(h_up_); } else { hist_out_f.push_back(h_up_); }
-
-	  TH1D *h_down_   = h1DHistoFrom2DTemplates(path2file,processes_in[ip]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,1,false);
-	  TH1D *h_down__  = h1DHistoFrom2DTemplates(path2file,processes_in[ip+1]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,1,false);
-	  h_down_->Add(h_down__); 
-	  TH1D *h_down___ = h1DHistoFrom2DTemplates(path2file,processes_in[ip+2]+"_"+syst[is]+"Down_"+catstr_,name,ymin,ymax,1,false);
-	  h_down_->Add(h_down___);
-	  h_down_->SetName(processes_out[count]+"_"+nameSyst+"Down"); h_down_->SetLineColor(colors[count]); h_down_->SetFillColor(colors[count]);
-	  if (category[ic] == "pass") { hist_out_p.push_back(h_down_); } else { hist_out_f.push_back(h_down_); }
-	  }
         }
 	ip = ip+2;
 	++count;
@@ -201,11 +297,26 @@ void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TStrin
   leg->AddEntry(h_data_p,"Data","PL");
   for (unsigned int i0=0; i0<hist_out_nom_p.size(); ++i0) { leg->AddEntry(hist_out_nom_p[i0],legends[i0],"L"); }
 
-  TCanvas *c_pass = makeCanvasWithRatio(h_data_p,hist_out_nom_p,"fit_"+sample+"_templates",name+"_pass","m_{SD} [GeV]","Enetries / bin",leg);  
+  TCanvas *c_pass = makeCanvasWithRatio(path2file,h_data_p,hist_out_nom_p,"fit_"+sample+"_templates",name+"_pass","m_{SD} [GeV]","Events / bin",leg);  
   c_pass->Print(dirname1+"/"+nameoutfile+"_pass.pdf"); 
 
-  TCanvas *c_fail = makeCanvasWithRatio(h_data_f,hist_out_nom_f,"fit_"+sample+"_templates",name+"_fail","m_{SD} [GeV]","Enetries / bin",leg);
+  TCanvas *c_fail = makeCanvasWithRatio(path2file,h_data_f,hist_out_nom_f,"fit_"+sample+"_templates",name+"_fail","m_{SD} [GeV]","Events / bin",leg);
   c_fail->Print(dirname1+"/"+nameoutfile+"_fail.pdf");
+
+   
+  // Print histograms of total (pass + fail) events
+  TH1D* h_data_t = (TH1D*)h_data_p->Clone();
+  h_data_t->Add(h_data_f);
+
+  std::vector<TH1D*> hist_out_nom_t;
+  for (int i=0; i<hist_out_nom_p.size(); i++) {
+    TH1D* h_nom_t = (TH1D*)hist_out_nom_p[i]->Clone();
+    h_nom_t->Add(hist_out_nom_f[i]);
+    hist_out_nom_t.push_back(h_nom_t);
+  }
+
+  TCanvas *c_total = makeCanvasWithRatio(path2file,h_data_t,hist_out_nom_t,"fit_"+sample+"_templates",name+"_total","m_{SD} [GeV]","Events / bin",leg);
+  c_total->Print(dirname1+"/"+nameoutfile+"_total.pdf");
   
 
   TFile *fout_p = new TFile("./"+dirname1+"/"+nameoutfile+"_templates_p.root","RECREATE");
@@ -228,7 +339,7 @@ void makeDataMCFrom2DTemplatesTop(TString path2file, TString nameoutfile, TStrin
 }
 
 
-TCanvas *makeCanvasWithRatio(TH1D* hdata, std::vector<TH1D*> h1d, TString dir, TString name, TString xname, TString yname, TLegend *leg) {
+TCanvas *makeCanvasWithRatio(TString path2file, TH1D* hdata, std::vector<TH1D*> h1d, TString dir, TString name, TString xname, TString yname, TLegend *leg) {
 
   TH1::SetDefaultSumw2(kTRUE);
   setTDRStyle();
@@ -239,7 +350,8 @@ TCanvas *makeCanvasWithRatio(TH1D* hdata, std::vector<TH1D*> h1d, TString dir, T
 
   THStack *hs = new THStack("hs_"+name,"hs_"+name);
   std::vector<TH1D*> histos; histos.clear();
-  for (int i0=0; i0<h1d.size(); ++i0) { 
+  int proc_order[5] = {3,4,2,1,0}; // Determine order of bkgs in THStack (currently from bottom to top: other, QCD, p3, p2, p1)
+  for (int i0 : proc_order) { 
     TString count = std::to_string(i0);
     hs->Add(h1d[i0]);
     TH1D* h_ = (TH1D*)h1d[i0]->Clone("h_"+count); h_->SetFillColor(0); h_->SetLineStyle(2);
@@ -249,50 +361,98 @@ TCanvas *makeCanvasWithRatio(TH1D* hdata, std::vector<TH1D*> h1d, TString dir, T
   TH1D *h_sm = (TH1D*)h1d[0]->Clone("h_sm");
   h_sm->Reset("ICES");
 
-  TCanvas *c_ = new TCanvas("c_"+name,"c_"+name,600,600); c_->SetName("c_"+name);
+  TCanvas *c_ = new TCanvas("c_"+name,"c_"+name,2000,2000); c_->SetName("c_"+name);
   TPad *pMain  = new TPad("pMain_"+name,"pMain+"+name,0.0,0.25,1.0,1.0);
   pMain->SetRightMargin(0.05);
   pMain->SetLeftMargin(0.17);
-  pMain->SetBottomMargin(0.);
+  pMain->SetBottomMargin(0.03);
   pMain->SetTopMargin(0.1);
   TPad *pRatio = new TPad("pRatio_"+name,"pRatio_"+name,0.0,0.0,1.0,0.25);
   pRatio->SetRightMargin(0.05);
   pRatio->SetLeftMargin(0.17);
-  pRatio->SetTopMargin(0.);
-  pRatio->SetBottomMargin(0.37);
+  pRatio->SetTopMargin(0.04);
+  pRatio->SetBottomMargin(0.6);
   pMain->Draw();
   pRatio->Draw();
-  
+
   pMain->cd();
-  hdata->GetXaxis()->SetTitle(xname);
-  hdata->GetYaxis()->SetTitle(yname);
+
+  //hdata->GetXaxis()->SetTitle(xname);
   if (name.Contains("pass")) { hdata->GetYaxis()->SetRangeUser(0.,1.5*hdata->GetMaximum()); }
   else { hdata->GetYaxis()->SetRangeUser(0.,1.2*hdata->GetMaximum()); }
-  hdata->Draw("P E0");
+  hdata->GetYaxis()->SetTitle(yname);
+  hdata->GetYaxis()->SetTitleOffset(1.4);
+  hdata->GetXaxis()->SetLabelSize(0);
+  hdata->SetMarkerStyle(20);
+  hdata->SetMarkerSize(3);
+  hdata->Draw("EP");
 
-  for (int i0=0; i0<h1d.size(); ++i0) { h1d[i0]->Draw("HIST E0 sames"); h_sm->Add(h1d[i0]); }
+  //hs->GetXaxis()->SetLabelSize(0);
+  //hs->GetYaxis()->SetTitle(yname);
+  hs->Draw("HIST E sames");
+  hdata->Draw("EP sames");
+  //for (unsigned int i0=0; i0<histos.size(); ++i0) { histos[i0]->Draw("HIST E0 sames"); }
+  leg->Draw("sames");
 
+  c_->RedrawAxis();
+  pMain->RedrawAxis();
+
+  for (int i0=0; i0<h1d.size(); ++i0) {h_sm->Add(h1d[i0]);}
 
   // data mc ratio
   TH1F *h_r = (TH1F*)hdata->Clone("h_"+name+"_r"); h_r->Divide(hdata,h_sm);
 
-  // continue drawing
-  hs->Draw("HIST E0 sames");
-  for (unsigned int i0=0; i0<histos.size(); ++i0) { histos[i0]->Draw("HIST E0 sames"); }
-  hdata->Draw("P E0 sames");
-  leg->Draw("sames");
-  c_->RedrawAxis();
-  pMain->RedrawAxis();
+  TPaveText *pt_cms = new TPaveText(0.18,0.88,0.28,1,"NDC");
+  pt_cms->SetFillStyle(0);
+  pt_cms->SetFillColor(0);
+  pt_cms->SetLineWidth(0);
+  pt_cms->SetLineWidth(0);
+  pt_cms->SetTextColor(kBlack);
+  pt_cms->AddText("CMS");
+  pt_cms->SetTextSize(0.08);
+
+  TPaveText *pt_preliminary = new TPaveText(0.34,0.88,0.48,1,"NDC");
+  pt_preliminary->AddText("Preliminary");
+  pt_preliminary->SetTextFont(52);
+  pt_preliminary->SetFillStyle(0);
+  pt_preliminary->SetFillColor(0);
+  pt_preliminary->SetLineWidth(0);
+  pt_preliminary->SetTextColor(kBlack);
+  pt_preliminary->SetTextSize(0.06);
+
+  const char *longstring;
+  if (path2file.Contains("2016APV_")) { longstring = "19.50 fb^{-1}, 2016APV (13 TeV)"; }
+  if (path2file.Contains("2016_")) { longstring = "16.83 fb^{-1}, 2016 (13 TeV)"; }
+  if (path2file.Contains("2017_")) { longstring = "41.48 fb^{-1}, 2017 (13 TeV)"; }
+  if (path2file.Contains("2018_")) { longstring = "59.83 fb^{-1}, 2018 (13 TeV)"; }
+  if (path2file.Contains("test")) { longstring = "35.9 fb^{-1} (13 TeV)"; }
+  float ybin_max = hdata->GetYaxis()->GetXmax();
+  TPaveText *pt_lumi = new TPaveText(0.7,0.88,0.9,1,"NDC");
+  pt_lumi->AddText(longstring);
+  pt_lumi->SetTextFont(42);
+  pt_lumi->SetTextSize(0.04);
+  pt_lumi->SetFillColor(0);
+  pt_lumi->SetFillStyle(0);
+  pt_lumi->SetLineWidth(0);
+  pt_lumi->SetTextColor(kBlack);
+
+  pMain->cd();
+  pt_cms->Draw("sames");
+  pt_preliminary->Draw("sames");
+  pt_lumi->Draw("sames");
+  pMain->Update();
 
   pRatio->cd();
-  gPad->SetBottomMargin(0.2);
-  h_r->GetYaxis()->SetTitleOffset(0.9);
+  gPad->SetBottomMargin(0.3);
+  h_r->GetYaxis()->SetTitleOffset(0.7);
   h_r->GetYaxis()->SetTitleSize(0.1);
   h_r->GetYaxis()->SetLabelSize(0.08);
-  h_r->GetXaxis()->SetTitleSize(0.1);
-  h_r->GetXaxis()->SetLabelSize(0.08);
+  //h_r->GetXaxis()->SetTitleOffset(0.2);
+  h_r->GetXaxis()->SetTitleSize(0.12);
+  h_r->GetXaxis()->SetLabelSize(0.1);
   h_r->GetXaxis()->SetTitle(xname);
   h_r->GetYaxis()->SetTitle("Data / MC");
+  h_r->GetYaxis()->SetTitleSize(0.12);
   h_r->GetYaxis()->SetRangeUser(0.6,1.3);
   h_r->Draw("P E0");
 
@@ -300,7 +460,7 @@ TCanvas *makeCanvasWithRatio(TH1D* hdata, std::vector<TH1D*> h1d, TString dir, T
 }
 
 
-TH1D *h1DHistoFrom2DTemplates(TString path2file,TString h2dname, TString name, double ymin, double ymax,int color,bool isdata) {
+TH1D *h1DHistoFrom2DTemplates(TString path2file,TString h2dname, TString name, double ymin, double ymax, double zmin, double zmax, int color,bool isdata) {
   TH1::SetDefaultSumw2(kTRUE);
   setTDRStyle();
   gROOT->SetBatch(false);
@@ -308,9 +468,10 @@ TH1D *h1DHistoFrom2DTemplates(TString path2file,TString h2dname, TString name, d
   gStyle->SetOptFit(0);
   gStyle->SetPalette(1);
 
-
+  std::cout << "Hist 2D name: " << h2dname << "\n";
   TFile *f2d = TFile::Open(path2file,"READONLY");
   TH2D  *h2d = (TH2D*)f2d->Get(h2dname); h2d->SetDirectory(0);
+  //std::cout << typeid(*h2d).name();
   TH1D  *h1d = h2d->ProjectionX("h1d_"+h2dname,h2d->GetYaxis()->FindBin(ymin),h2d->GetYaxis()->FindBin(ymax),"e"); h1d->SetDirectory(0);
   h1d->SetName(h2dname+"_"+name);
   h1d->SetLineColor(color);
@@ -422,8 +583,9 @@ TGraphAsymmErrors *getSFGraph(TString dir, TString algo, TString cat, TString wp
   return gr_sf_tmp;
 }
 
+
 void makeDataMCPlotFromCombine(TString path2file, TString era, TString category, TString category_extra, TString wpmin, TString wpmax, TString name, TString passOrFail, 
-			       float xmin, float xmax, int nbins,TString xaxisname, bool log, TString sample ="") {
+			       float xmin, float xmax, double ptlow, double pthigh, int nbins,TString xaxisname, bool log, TString sample ="") {
 
   std::cout << " In makeDataMCPlotFromCombine\n";
 
@@ -447,25 +609,15 @@ void makeDataMCPlotFromCombine(TString path2file, TString era, TString category,
   std::vector<TString> processes; processes.clear();
   std::vector<int> colors;        colors.clear();
   std::vector<TString> legends;   legends.clear();
-  if ( (sample == "tt1L") || (sample=="ttbar1L") || (sample=="ttbar1l") || (sample == "tt1l") ) 
+  if (sample == "tt1l") 
     {
-      if (category == "w") 
-	{ 
-	  std::cout << " sample = " << sample << " , category = " << category << "\n";
-	  processes.push_back("tp3"); processes.push_back("tp2"); processes.push_back("tp1"); processes.push_back("other"); processes.push_back("total");
-	  colors.push_back(conf::tp3.color); colors.push_back(conf::tp2.color); colors.push_back(conf::tp1.color); colors.push_back(conf::other.color); colors.push_back(602);
-	  legends.push_back(conf::tp3.legend_name); legends.push_back(conf::tp2.legend_name); legends.push_back(conf::tp1.legend_name); legends.push_back(conf::other.legend_name); legends.push_back("Total SM");
-	}
-      else if (category == "top")
-	{ 
-	  std::cout << " sample = " << sample << " , category = " << category << "\n";
-	  processes.push_back("tp3"); processes.push_back("tp2"); processes.push_back("tp1"); processes.push_back("other"); processes.push_back("total");
-	  colors.push_back(conf::tp3.color); colors.push_back(conf::tp2.color); colors.push_back(conf::tp1.color); colors.push_back(conf::other.color); colors.push_back(602);
-	  legends.push_back(conf::tp3.legend_name); legends.push_back(conf::tp2.legend_name); legends.push_back(conf::tp1.legend_name); legends.push_back(conf::other.legend_name); legends.push_back("Total SM");
-	}
+      std::cout << " sample = " << sample << " , category = " << category << "\n";
+      processes.push_back("tp3"); processes.push_back("tp2"); processes.push_back("tp1"); processes.push_back("other"); processes.push_back("total");
+      colors.push_back(conf::tp3.color); colors.push_back(conf::tp2.color); colors.push_back(conf::tp1.color); colors.push_back(conf::other.color); colors.push_back(kRed+1);
+      legends.push_back(conf::tp3.legend_name); legends.push_back(conf::tp2.legend_name); legends.push_back(conf::tp1.legend_name); legends.push_back(conf::other.legend_name); legends.push_back("Total SM");
     }
 
-  TString extra_ = "/"; if (sample == "comb") { extra_ = "/ch2_"; } 
+  TString extra_ = "/";
 
   // get prefit histograms
   TString prefitstr = "shapes_prefit";
@@ -477,55 +629,43 @@ void makeDataMCPlotFromCombine(TString path2file, TString era, TString category,
 
   std::vector<TH1F*> h_prefit; h_prefit.clear();
   std::vector<TH1F*> h_postfit; h_postfit.clear();
-  for (unsigned int i0=0; i0<processes.size(); ++i0) {
-    std::cout << prefitstr+extra_+passOrFail+"/"+processes[i0] << "\n";
-    // get prefit histos
-    TH1F *h_prefit_ = (TH1F*)fdiag->Get(prefitstr+extra_+passOrFail+"/"+processes[i0]); h_prefit_->SetName("h_pre_"+name+"_"+processes[i0]+"_"+passOrFail+"_");
-    TH1F *h_prefit__ = rescaleXaxis(h_prefit_,conf::minX,conf::maxX); h_prefit_->SetName("h_pre_"+name+"_"+processes[i0]+"_"+passOrFail);
-    h_prefit__->SetLineColor(colors[i0]); h_prefit__->SetLineStyle(2); h_prefit__->SetLineWidth(3); h_prefit__->SetMarkerSize(0);
-    h_prefit.push_back(h_prefit__);
-
-    // get postfit histograms
-    TH1F *h_postfit_ = (TH1F*)fdiag->Get(postfitstr+extra_+passOrFail+"/"+processes[i0]); h_postfit_->SetName("h_post_"+name+"_"+processes[i0]+"_"+passOrFail+"_");
-    TH1F *h_postfit__ = rescaleXaxis(h_postfit_,conf::minX,conf::maxX); h_postfit_->SetName("h_post_"+name+"_"+processes[i0]+"_"+passOrFail);
-    h_postfit__->SetLineColor(colors[i0]); h_postfit__->SetLineStyle(1); h_postfit__->SetLineWidth(3); h_postfit__->SetMarkerSize(0);
-    h_postfit.push_back(h_postfit__);
-   
-  }
-
+  for (unsigned int i0=0; i0<processes.size(); ++i0) 
+    {
+      std::cout << prefitstr+extra_+passOrFail+"/"+processes[i0] << "\n";
+      // get prefit histos
+      TH1F *h_prefit_ = (TH1F*)fdiag->Get(prefitstr+extra_+passOrFail+"/"+processes[i0]); h_prefit_->SetName("h_pre_"+name+"_"+processes[i0]+"_"+passOrFail+"_");
+      TH1F *h_prefit__ = rescaleXaxis(h_prefit_,conf::minX,conf::maxX); h_prefit_->SetName("h_pre_"+name+"_"+processes[i0]+"_"+passOrFail);
+      h_prefit__->SetLineColor(colors[i0]); h_prefit__->SetLineStyle(2); h_prefit__->SetLineWidth(3); h_prefit__->SetMarkerSize(0);
+      h_prefit.push_back(h_prefit__);
+      
+      // get postfit histograms
+      TH1F *h_postfit_ = (TH1F*)fdiag->Get(postfitstr+extra_+passOrFail+"/"+processes[i0]); h_postfit_->SetName("h_post_"+name+"_"+processes[i0]+"_"+passOrFail+"_");
+      TH1F *h_postfit__ = rescaleXaxis(h_postfit_,conf::minX,conf::maxX); h_postfit_->SetName("h_post_"+name+"_"+processes[i0]+"_"+passOrFail);
+      h_postfit__->SetLineColor(colors[i0]); h_postfit__->SetLineStyle(1); h_postfit__->SetLineWidth(3); h_postfit__->SetMarkerSize(0);
+      h_postfit.push_back(h_postfit__);      
+    }
+  
   // get data
   TGraphAsymmErrors *h_data = (TGraphAsymmErrors*)fdiag->Get("shapes_prefit"+extra_+passOrFail+"/data"); h_data->SetName("h_data_"+name+"_"+passOrFail);
   rescaleXaxis(h_data, conf::minX, (conf::maxX-conf::minX)/(float)conf::binsX);
   h_data->SetLineColor(1); h_data->SetLineWidth(3); 
-  h_data->SetMarkerColor(1); h_data->SetMarkerStyle(20); h_data->SetMarkerSize(1.2); 
+  h_data->SetMarkerColor(1); h_data->SetMarkerStyle(20); h_data->SetMarkerSize(1.8); 
 
   int numOfMC = h_prefit.size();
   TH1F *h_r_prefit = getDataMCratio(h_data,h_prefit[numOfMC-1]); h_r_prefit->SetName("h_r_prefit_"+name+"_"+passOrFail);
   h_r_prefit->SetMarkerSize(0); h_r_prefit->SetLineColor(42); h_r_prefit->SetLineStyle(2);
   
   TH1F *h_r_postfit = getDataMCratio(h_data,h_postfit[numOfMC-1]); h_r_postfit->SetName("h_r_postfit_"+name+"_"+passOrFail);
-  h_r_postfit->SetMarkerColor(1); h_r_postfit->SetLineColor(1);
+  h_r_postfit->SetMarkerColor(1); h_r_postfit->SetLineColor(1); h_r_postfit->SetMarkerSize(1.8);
 
-  TLegend* leg = new TLegend(0.60,0.55,0.94,0.86);
+  TLegend* leg = new TLegend(0.50,0.62,0.94,0.90);
+  leg->SetNColumns(2);
   leg->SetFillStyle(0);
   leg->SetFillColor(0);
   leg->SetLineWidth(0);
   for (unsigned int i0=0; i0<h_prefit.size(); ++i0) { leg->AddEntry(h_postfit[i0],legends[i0],"L"); }
 
-  TLegend* legfit = new TLegend(0.4,0.7,0.65,0.86);
-  legfit->SetFillStyle(0);
-  legfit->SetFillColor(0);
-  legfit->SetLineWidth(0);
-  legfit->AddEntry(h_prefit[numOfMC-1],"Pre-fit","L");
-  legfit->AddEntry(h_postfit[numOfMC-1],"Post-fit","L");
-
-  TLegend* legfitr = new TLegend(0.35,0.80,0.55,0.93);
-  legfitr->SetFillStyle(0);
-  legfitr->SetFillColor(0);
-  legfitr->SetLineWidth(0);
-  legfitr->AddEntry(h_r_prefit,"Pre-fit","L");
-  legfitr->AddEntry(h_r_postfit,"Post-fit","L");
-
+  /*
   TPaveText *pt_cms = new TPaveText(0.11,0.77,0.4,0.9,"NDC");
   pt_cms->SetFillStyle(0);
   pt_cms->SetFillColor(0);
@@ -540,35 +680,50 @@ void makeDataMCPlotFromCombine(TString path2file, TString era, TString category,
   pt_preliminary->AddText("Preliminary");
   pt_preliminary->SetTextFont(52);
   pt_preliminary->SetTextSize(0.06);
+  */
 
-  TLatex pt_lumi;
+  TLatex *pt_cms = new TLatex();
+  pt_cms->SetTextSize(0.06);
+  pt_cms->SetLineWidth(0);
+
+  TLatex *pt_lumi = new TLatex();
   const char *longstring;
-  if (path2file.Contains("2016")) { longstring = "19.52 fb^{-1} (13 TeV)"; }
-  if (path2file.Contains("2017")) { longstring = "41.53 fb^{-1} (13 TeV)"; }
-  if (path2file.Contains("2018")) { longstring = "59.74 fb^{-1} (13 TeV)"; }
-  if (path2file.Contains("test")) { longstring = "35.9 fb^{-1} (13 TeV)"; }
-  pt_lumi.SetTextSize(0.07);
-  pt_lumi.SetTextFont(42);
-
+  if (era == "2016APV") { longstring = "20 fb^{-1} (13 TeV)"; }
+  if (era == "2016") { longstring = "17 fb^{-1} (13 TeV)"; }
+  if (era == "2017") { longstring = "41 fb^{-1} (13 TeV)"; }
+  if (era == "2018") { longstring = "60 fb^{-1} (13 TeV)"; }
+  if (path2file.Contains("2022")) { longstring = "7.98  fb^{-1} (13 TeV)"; }
+  
+  pt_lumi->SetTextSize(0.04);
+  pt_lumi->SetTextFont(42);
+  pt_lumi->SetTextAlign(31);
+   
+  TLatex *pt_bins = new TLatex();
+  pt_bins->SetLineWidth(0);
+  pt_bins->SetTextSize(0.04);
+  std::string ptmin_str = std::to_string((int)ptlow);
+  std::string ptmax_str = std::to_string((int)pthigh);
+  TString pt_string = "#splitline{p_{T}: [" + ptmin_str + "," + ptmax_str + ")}"+"{"+std::string(passOrFail.Data())+" region}";
+  
   TString logstr = "lin"; if (log) { logstr = "log"; } 
-  TCanvas *c = new TCanvas("c_"+name+"_"+category,"c_"+name+"_"+category,600,600); 
+  TCanvas *c = new TCanvas("c_"+name+"_"+category,"c_"+name+"_"+category,2000,2000); 
   c->SetName("c_"+name+"_"+category);
 
-  TPad *pMain  = new TPad("pMain_"+name+"_"+category,"pMain+"+name+"_"+category,0.0,0.35,1.0,1.0);
+  TPad *pMain  = new TPad("pMain_"+name,"pMain+"+name,0.0,0.3,1.0,1.0);
   pMain->SetRightMargin(0.05);
   pMain->SetLeftMargin(0.17);
-  pMain->SetBottomMargin(0.02);
-  pMain->SetTopMargin(0.1);
-  
-  TPad *pRatio = new TPad("pRatio_"+name+"_"+category,"pRatio_"+name+"_"+category,0.0,0.0,1.0,0.35);
+  pMain->SetBottomMargin(0.03);
+  pMain->SetTopMargin(0.07);
+  TPad *pRatio = new TPad("pRatio_"+name,"pRatio_"+name,0.0,0.0,1.0,0.3);
   pRatio->SetRightMargin(0.05);
   pRatio->SetLeftMargin(0.17);
-  pRatio->SetTopMargin(0.02);
-  pRatio->SetBottomMargin(0.4);
+  pRatio->SetTopMargin(0.03);
+  pRatio->SetBottomMargin(0.39);
+  
   pMain->Draw();
   pRatio->Draw();
- 
   pMain->cd();
+
   float maxyld = h_postfit[numOfMC-1]->GetMaximum(); 
   if (h_prefit[numOfMC-1]->GetMaximum()>h_postfit[numOfMC-1]->GetMaximum()) { maxyld = h_prefit[numOfMC-1]->GetMaximum(); }
   if (log) { gPad->SetLogy(); h_prefit[numOfMC-1]->GetYaxis()->SetRangeUser(0.1,10.*maxyld); } else { h_prefit[numOfMC-1]->GetYaxis()->SetRangeUser(0.,1.8*maxyld); }
@@ -580,36 +735,49 @@ void makeDataMCPlotFromCombine(TString path2file, TString era, TString category,
   for (unsigned int i0=0; i0<h_postfit.size(); ++i0) { h_postfit[i0]->Draw("HIST E0 sames"); }
   h_data->Draw("P sames");
   leg->Draw("sames");
-  pt_cms->Draw("sames");
-  pt_preliminary->Draw("sames");
+  //pt_cms->Draw("sames");
+  //pt_preliminary->Draw("sames");
+  pt_cms->DrawLatexNDC(0.17,0.95,"CMS #bf{#it{Work in Progress}}");
+  pt_lumi->DrawLatexNDC(0.95,0.95,longstring);
+  pt_bins->DrawLatexNDC(0.21,0.81,pt_string);
   std::cout << " i m here 12-d\n";
   std::cout << " i m here 12-e\n";
   c->RedrawAxis();
   pRatio->cd();
-  gPad->SetBottomMargin(0.2);
-  h_r_postfit->GetYaxis()->SetTitleOffset(0.75);
-  h_r_postfit->GetYaxis()->SetTitleSize(0.1);
+  
+  h_r_postfit->GetYaxis()->SetTitleOffset(0.4);
+  h_r_postfit->GetYaxis()->SetTitleSize(0.11);
   h_r_postfit->GetYaxis()->SetLabelSize(0.08);
-  h_r_postfit->GetXaxis()->SetTitleSize(0.1);
-  h_r_postfit->GetXaxis()->SetLabelSize(0.08);
+  h_r_postfit->GetXaxis()->SetTitleSize(0.13);
+  h_r_postfit->GetXaxis()->SetTitleOffset(0.95);
+  h_r_postfit->GetXaxis()->SetLabelSize(0.12);
   h_r_postfit->GetXaxis()->SetTitle(xaxisname);
+
   h_r_postfit->GetYaxis()->SetTitle("Data / Post-fit");
-  h_r_postfit->GetYaxis()->SetRangeUser(0.8,1.2);
+  h_r_postfit->GetYaxis()->SetRangeUser(0.39,1.61);
+
   h_r_postfit->Draw("P E0");
   h_r_prefit->Draw("HIST sames");
+
+  TLine* line = new TLine(xmin,1,xmax,1);
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2);
+  line->Draw("same");
+  
   c->RedrawAxis();
  
-  if (log) {
-    c->Print(path2file+"_sf/plots_datamc/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_log.pdf");
-    c->Print(path2file+"_sf/plots_datamc/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_log.png");
-  } 
-  else {
-    c->Print(path2file+"_sf/plots_postfit/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_lin.pdf");
-    c->Print(path2file+"_sf/plots_postfit/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_lin.png");
-  }
-
+  if (log) 
+    {
+      c->Print(path2file+"_sf/plots_datamc/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_log.pdf");
+      c->Print(path2file+"_sf/plots_datamc/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_log.png");
+    } 
+  else 
+    {
+      c->Print(path2file+"_sf/plots_postfit/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_lin.pdf");
+      c->Print(path2file+"_sf/plots_postfit/"+path2file+"_"+sample+"_"+era+"_"+name+"_"+category+"_"+wpmin+"to"+wpmax+"_"+passOrFail+"_lin.png");
+    }
+  
 } // end of makeDataMCPlotsFromCombine
-
 
 
 TH1F *createRatioPassOvFail(TTree *tree, TString name, TString lumi, TString cut, TString addCut, TString var, int bins, float xmin, float xmax, TString xname, 
@@ -667,7 +835,7 @@ TCanvas *c_ratioOf1Dhistos(TString c_name, TString lumi, std::vector<TString> na
   }
   std::cout << ratios.size() << "\n";
   // plot them
-  TCanvas *c_r = new TCanvas("c_ratioOf1Dhistos_"+c_name,"c_ratioOf1Dhistos_"+c_name,500,500);
+  TCanvas *c_r = new TCanvas("c_ratioOf1Dhistos_"+c_name,"c_ratioOf1Dhistos_"+c_name,2000,2000);
   for (int ihistos=0; ihistos<ratios.size(); ++ihistos) {
     for (int ihisto=0; ihisto<ratios[ihistos].size(); ++ihisto) {
       

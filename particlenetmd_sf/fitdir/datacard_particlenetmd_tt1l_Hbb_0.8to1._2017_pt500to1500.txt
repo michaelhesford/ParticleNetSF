@@ -1,0 +1,62 @@
+imax 2  number of channels
+jmax 4  number of processes -1
+kmax *  number of nuisance parameters (sources of systematical uncertainties)
+------------
+shapes  *  pass  particlenetmd_sf/particlenetmd_tt1l_Hbb_0.8to1._2017_pt500to1500_templates_p.root  $PROCESS $PROCESS_$SYSTEMATIC
+shapes  *  fail  particlenetmd_sf/particlenetmd_tt1l_Hbb_0.8to1._2017_pt500to1500_templates_f.root  $PROCESS $PROCESS_$SYSTEMATIC
+------------
+bin             pass fail    
+observation      2213 7479
+------------
+# now we list the expected events for signal and all backgrounds in that bin
+# the second 'process' line must have a positive number for backgrounds, and 0 for signal
+# then we list the independent sources of uncertainties, and give their effect (syst. error)
+# on each process and bin
+bin             pass pass pass pass    fail fail fail fail fail 
+process         tp3  tp2  tp1 other     tp3  tp2  tp1 other qcd  
+process         4 3 6 -7      4 3 6 -7 8  
+rate            -1 -1 -1 -1     -1 -1 -1 -1 -1  
+------------
+lumi            lnN      1.023 1.023 1.023 1.023     1.023 1.023 1.023 1.023 1.023 
+
+tp3_xsec     lnN      1.05 - - -    1.05 - - - - 
+tp2_xsec     lnN      - 1.05 - -    - 1.05 - - - 
+tp1_xsec     lnN      - - 1.05 -    - - 1.05 - - 
+other_xsec   lnN      - - - 2.00    - - - 2.00 - 
+qcd_xsec     lnN      - - - -    - - - - 2.00 
+
+tp3JMS         shape    1 - - -     1 - - - - 
+tp2JMS         shape    - 1 - -     - 1 - - - 
+tp1JMS         shape    - - 1 -     - - 1 - - 
+otherJMS         shape    - - - 1     - - - 1 1 
+tp3JMR         shape    1 - - -     1 - - - - 
+tp2JMR         shape    - 1 - -     - 1 - - - 
+tp1JMR         shape    - - 1 -     - - 1 - - 
+otherJMR         shape    - - - 1     - - - 1 1 
+L1PreFiringWeight         shape    1 1 1 1     1 1 1 1 1 
+TptReweight         shape    1 1 1 -     1 1 1 - - 
+Pdfweight         shape    1 1 1 1     1 1 1 1 1 
+Pileup         shape    1 1 1 1     1 1 1 1 1 
+JES         shape    1 1 1 1     1 1 1 1 1 
+JER         shape    1 1 1 1     1 1 1 1 1 
+UE         shape    1 1 1 1     1 1 1 1 1 
+ISRunc_qcd         shape    1 1 1 -     1 1 1 - 1 
+FSRunc_qcd         shape    1 1 1 -     1 1 1 - 1 
+ISRunc_ewk         shape    1 1 1 1     1 1 1 1 - 
+FSRunc_ewk         shape    1 1 1 1     1 1 1 1 - 
+QCDscale_uncert_qcd         shape    1 1 1 -     1 1 1 - 1 
+QCDscale_uncert_ewk         shape    1 1 1 1     1 1 1 1 - 
+MuonIDWeight_uncert_stat         shape    1 1 1 1     1 1 1 1 1 
+MuonIDWeight_uncert_syst         shape    1 1 1 1     1 1 1 1 1 
+MuonRecoWeight_uncert_stat         shape    1 1 1 1     1 1 1 1 1 
+MuonRecoWeight_uncert_syst         shape    1 1 1 1     1 1 1 1 1 
+MuoTrigSF_lowPt         shape    1 1 1 1     1 1 1 1 1 
+MuoTrigSF_highPt         shape    1 1 1 1     1 1 1 1 1 
+norm_top    rateParam    pass    tp3      1   [0.,10.]
+norm_top    rateParam    fail    tp3      1   [0.,10.]
+norm_top    rateParam    pass    tp2      1   [0.,10.]
+norm_top    rateParam    fail    tp2      1   [0.,10.]
+norm_top    rateParam    pass    tp1      1   [0.,10.]
+norm_top    rateParam    fail    tp1      1   [0.,10.]
+
+*  autoMCStats  0
