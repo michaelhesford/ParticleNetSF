@@ -1,3 +1,5 @@
+Copied from: https://github.com/cms-jet/ParticleNetSF
+
 Installing Combine (lpc)
 ------------------------
 link: https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
